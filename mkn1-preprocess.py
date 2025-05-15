@@ -12,10 +12,10 @@ DATA SENTIMENT
 
 """
 file_fear_raw = 'fear_raw.json'
-file_fear_interpolated = 'fear_clean.csv'
-file_btc = 'btc.csv'
-file_btc_clean = 'btc_clean.csv'
-file_merged = 'merged.csv'
+file_fear_interpolated = 'csv/fear_clean.csv'
+file_btc = 'csv/btc.csv'
+file_btc_clean = 'csv/btc_clean.csv'
+file_merged = 'csv/merged.csv'
 
 print("1. Ambil data Fear & Greed Index harian dari API")
 try:

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from tensorflow.keras.layers import Bidirectional, Dropout, Activation, Dense, LSTM
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -27,7 +27,7 @@ warnings.filterwarnings('ignore')
 # Divide the data into shorter-period sequences
 dataset_days = 180
 seq_len = 120
-batch_size = 16
+batch_size = 32
 dropout = 0.4
 window_size = seq_len - 1
 n_features = 4    # Sentiment, Close, UpperBolinger, LowerBolinger
@@ -35,6 +35,7 @@ n_features = 4    # Sentiment, Close, UpperBolinger, LowerBolinger
 
 # Build a 3-layer LSTM RNN
 the_model = create_the_model(window_size, dropout, n_features)
+early_stop = EarlyStopping(monitor='val_loss', patience=7, restore_best_weights=True)
 
 
 # Define the model heckpoint callback
@@ -48,8 +49,8 @@ model_checkpoint_callback = ModelCheckpoint(
 )
 
 for fit_repeat in range(20):
-    start_day = np.random.randint(-364+dataset_days,0)
-    df = dataset(start_day, days=dataset_days)
+    end_day = np.random.randint(-364+dataset_days,0)
+    df = dataset(end_day, days=dataset_days)
     x_train, y_train, x_test, y_test = get_train_test_sets(df, seq_len, train_frac=0.9)
     # Ambil hanya kolom target
     target_idx = df.columns.get_loc('Close')
@@ -59,11 +60,11 @@ for fit_repeat in range(20):
     history = the_model.fit(
         x_train,
         y_train,
-        epochs=10,
+        epochs=50,
         batch_size=batch_size,
         shuffle=False,
         validation_split=0.2,
-        callbacks=[model_checkpoint_callback]
+        callbacks=[model_checkpoint_callback, early_stop]
     )
     the_model.load_weights(checkpoint_filepath)
     the_model.summary()
@@ -78,6 +79,7 @@ for fit_repeat in range(20):
     plt.plot(y_test, label='True')
     plt.plot(y_pred, label='Predicted')
     plt.legend()
+    plt.title(f'Refit #{fit_repeat} Day: {end_day-90} ~ {end_day}')
     plt.savefig(f'train_prediction_{fit_repeat}.png')
     plt.close()  # Close the figure to free memory if in a loop
     

@@ -5,15 +5,24 @@ import pandas as pd
 from tensorflow.keras.layers import Bidirectional, Dropout, Activation, Dense, LSTM
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.optimizers import Adam
 from datetime import datetime
 
 
 
 # Load data hasil merge
-df_full = pd.read_csv('merged.csv', parse_dates=['Datetime'])
+df_full1 = pd.read_csv('csv/merged.csv', parse_dates=['Datetime'])
 # Pastikan urut waktu
-df_full = df_full.sort_values('Datetime')
+df_full1 = df_full1.sort_values('Datetime')
 
+df_full4 = pd.read_csv('csv/merged4.csv', parse_dates=['Datetime'])
+df_full4 = df_full4.sort_values('Datetime')
+
+df_full12 = pd.read_csv('csv/merged12.csv', parse_dates=['Datetime'])
+df_full12 = df_full12.sort_values('Datetime')
+
+df_full24 = pd.read_csv('csv/merged24.csv', parse_dates=['Datetime'])
+df_full24 = df_full24.sort_values('Datetime')
 
 def create_the_model(window_size, dropout, n_feature):
     the_model = Sequential()
@@ -24,7 +33,7 @@ def create_the_model(window_size, dropout, n_feature):
     the_model.add(Bidirectional(LSTM(window_size, return_sequences=False)))
     the_model.add(Dense(units=1)) # banyak output neuron
     the_model.add(Activation('linear'))
-    the_model.compile(loss='mean_squared_error',optimizer='adam')
+    the_model.compile(loss='mean_squared_error',optimizer=Adam(learning_rate=0.0005))
     return the_model
 
 
@@ -44,10 +53,21 @@ def get_train_test_sets(data, seq_len, train_frac):
 
 # buat dataset initial
 # Ambil 90 hari terakhir
-def dataset(end,days=90, return_scaler=False):
+def dataset(end,days=90, return_scaler=False, candlehr=1):
     # start dan end nilai hari terakhir
     # misal dataset(0,days=90) maka akan mengambil data 90 hari terakhir sampai hari ini
     # misal dataset(-90,days=90) maka data 180 hari sampai 90 hari terakhir
+    if candlehr==1:
+        df_full = df_full1
+    elif candlehr==4:
+        df_full = df_full4
+    elif candlehr==12:
+        df_full = df_full12
+    elif candlehr==24:
+        df_full = df_full24
+    else:
+        raise ValueError("candlehr harus 1, 4, 12, atau 24")
+
     last_date = df_full['Datetime'].max() - pd.Timedelta(days=-end)
     first_date = last_date - pd.Timedelta(days=(days))
     print(f"from {first_date} to {last_date}")
@@ -69,6 +89,7 @@ def dataset(end,days=90, return_scaler=False):
         raise e
     df90 = df90.drop(columns=['Datetime'])
     print('setelah normalisasi')
+    print(df90.head())
     print(df90.tail())
     if return_scaler:
         return df90, scaler
