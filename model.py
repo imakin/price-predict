@@ -75,10 +75,10 @@ def dataset(end,days=90, return_scaler=False, candlehr=1):
     print(df90.tail())
 
     # Sentimen dinormalisasi ke 0~1 bukan relatif ke dataset min max
-    df90['Sentiment'] = df90['Sentiment'] / 100
+    df90['Sentiment'] = (df90['Sentiment'] / 100) - 0.5
     # Kolom lain normalisasi minmax dalam satu dataset
     cols_to_norm = ['Close', 'UpperBolinger', 'LowerBolinger']
-    scaler = MinMaxScaler(feature_range=(0,1))
+    scaler = MinMaxScaler(feature_range=(-1,1))
     try:
         df90[cols_to_norm] = scaler.fit_transform(
             df90[cols_to_norm]

@@ -12,7 +12,7 @@ from model import (
 )
 
 # Divide the data into shorter-period sequence1s
-seq_len = 100
+seq_len = 60
 batch_size = 16
 dropout = 0.4
 window_size = seq_len - 1
@@ -23,10 +23,14 @@ n_features = 4    # Sentiment, Close, UpperBolinger, LowerBolinger
 # 1. Load model
 # the_model = create_the_model(window_size, dropout, n_features)
 # the_model.load_weights('model.weights.h5') 
-the_model1 = load_model('keras/model1_4.keras')
-the_model4 = load_model('keras/model4_9.keras')
-the_model12 = load_model('keras/model12_19.keras')
-the_model24 = load_model('keras/model24_34.keras')
+the_model1 = load_model('keras/model1_0.keras')
+the_model4 = load_model('keras/model4_1.keras')
+the_model12 = load_model('keras/model12_4.keras')
+the_model24 = load_model('keras/model24_3.keras')
+# the_model1 = load_model('keras/model_last_1.keras')
+# the_model4 = load_model('keras/model_last_4.keras')
+# the_model12 = load_model('keras/model_last_12.keras')
+# the_model24 = load_model('keras/model_last_24.keras')
 the_models = {
     1:the_model1,
     4:the_model4, 
@@ -37,10 +41,11 @@ the_models = {
 dataset_param_end = 0 #hari terakhir yang dipakai adalah hari max dikurangi nilai ini
 # 2. Load dataset normalisasi 90 hari terakhir (tanpa kolom Datetime)
 # scaler nanti dipakai untuk inverse
-df1,  scaler1  = dataset(dataset_param_end, days=180, return_scaler=True,candlehr=1)
-df4,  scaler4  = dataset(dataset_param_end, days=180, return_scaler=True,candlehr=4)
-df12, scaler12 = dataset(dataset_param_end, days=180, return_scaler=True,candlehr=12)
-df24, scaler24 = dataset(dataset_param_end, days=180, return_scaler=True,candlehr=24)
+days = 180
+df1,  scaler1  = dataset(dataset_param_end, days=days, return_scaler=True,candlehr=1)
+df4,  scaler4  = dataset(dataset_param_end, days=days, return_scaler=True,candlehr=4)
+df12, scaler12 = dataset(dataset_param_end, days=days, return_scaler=True,candlehr=12)
+df24, scaler24 = dataset(dataset_param_end, days=days, return_scaler=True,candlehr=24)
 
 dfs = {
     1:df1,
@@ -64,6 +69,14 @@ n_steps = 1 # berapa sequence / step prediksi
 prediksi_total = {}
 for varian_jam in [1,4,12,24]:
     # 4. Ambil sequence1 terakhir
+    if varian_jam==1:
+        window_size = 159
+    elif varian_jam==4:
+        window_size = 154
+    elif varian_jam==12:
+        window_size = 149
+    elif varian_jam==24:
+        window_size = 144
     sequence = dfs[varian_jam][cols_to_norm].values[-window_size:]  # shape: (window_size, n_features)
     the_model = the_models[varian_jam]
 

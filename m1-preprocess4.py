@@ -86,7 +86,7 @@ Ambil start & end datetime yang ada di df_sentiment_hourly
 """
 
 start_datetime = df_sentiment_hourly['Datetime'].iloc[0]
-end_datetime = df_sentiment_hourly['Datetime'].iloc[-1]
+end_datetime = df_sentiment_hourly['Datetime'].max()
 
 print(f"Start datetime: {start_datetime}")
 print(f"End datetime: {end_datetime}")
@@ -104,9 +104,10 @@ except FileNotFoundError:
     btc = yf.download( #sudah berbentuk DataFrame
         'BTC-USD',
         start=start_datetime.strftime('%Y-%m-%d'),
-        end=end_datetime.strftime('%Y-%m-%d'),
+        # end=(end_datetime + pd.Timedelta(days=1)).strftime('%Y-%m-%d'),
         interval='1h'
     )#DateTime as index
+    # btc.index = btc.index.tz_convert('Asia/Jakarta') # tetap pakai UTC
 
     # If DataFrame has MultiIndex columns, make it one line one idex!
     if isinstance(btc.columns, pd.MultiIndex):
@@ -122,11 +123,35 @@ btc.drop(columns=['Volume_BTC-USD'], inplace=True)
 
 print(btc.columns)
 print(btc.head())
+
+
+# menambahkan data pada 
+# df_sentiment_hourly,df_sentiment_4h,
+# df_sentiment_12h,df_sentiment_24h 
+# hingga jam terakhir yang tersedia
+# pada dataframe `btc`, isi dengan nilai terakhir sebelumnya
+# Ambil jam terakhir dari btc
+last_btc_time = btc.index.max() #btc['Datetime'].max()
+
+# Fungsi untuk extend DataFrame sentiment hingga jam terakhir btc
+def extend_sentiment(df, freq, last_time):
+    # Buat range baru dari waktu awal ke waktu akhir btc
+    full_range = pd.date_range(df['Datetime'].min(), last_time, freq=freq)
+    # Reindex dan isi nilai baru dengan ffill
+    df_ext = df.set_index('Datetime').reindex(full_range).ffill().reset_index().rename(columns={'index': 'Datetime'})
+    return df_ext
+
+# Extend masing-masing DataFrame
+df_sentiment_hourly = extend_sentiment(df_sentiment_hourly, 'H', last_btc_time)
+df_sentiment_4h     = extend_sentiment(df_sentiment_4h, '4H', last_btc_time)
+df_sentiment_12h    = extend_sentiment(df_sentiment_12h, '12H', last_btc_time)
+df_sentiment_24h    = extend_sentiment(df_sentiment_24h, '24H', last_btc_time)
+
 """
 Feature Engineering: 
 Buat bolinger band dari dataframe btc-usd
 """
-window = 20  # Typical window for Bolinger Bands and SMA
+window = 7  # Typical window for Bolinger Bands and SMA
 btc['SMA'] = btc['Close_BTC-USD'].rolling(window=window).mean()
 # Standar Deviasi
 btc['STD'] = btc['Close_BTC-USD'].rolling(window=window).std(ddof=1) # Bolinger Bands are designed to reflect recent price volatility. The rolling window is a moving sample, so using ddof=1 (Bessel’s correction) is statistically more appropriate for estimating the "true" volatility of the underlying process.

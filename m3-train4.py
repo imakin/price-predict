@@ -25,17 +25,14 @@ warnings.filterwarnings('ignore')
 
 
 # Divide the data into shorter-period sequences
-dataset_days = 240
-seq_len = 30
+dataset_days = 90
+seq_len = 60
 batch_size = 16
 dropout = 0.4
 window_size = seq_len - 1
 n_features = 4    # Sentiment, Close, UpperBolinger, LowerBolinger
 
 
-# Build a 3-layer LSTM RNN
-the_model = create_the_model(window_size, dropout, n_features)
-early_stop = EarlyStopping(monitor='val_loss', patience=7, restore_best_weights=True)
 
 
 for candle in [1,4,12,24]:
@@ -49,8 +46,24 @@ for candle in [1,4,12,24]:
         mode='min',
         save_best_only=True
     )
+    if candle==1:
+        dataset_days = 120 # normalisasi dilakukan dalam range ini!
+        seq_len = 60
+    elif candle==4:
+        dataset_days = 120
+        seq_len = 55
+    elif candle==12:
+        dataset_days = 180
+        seq_len = 50
+    else:
+        dataset_days = 240
+        seq_len = 45
+    window_size = seq_len - 1
+    # Build a 3-layer LSTM RNN
+    the_model = create_the_model(window_size, dropout, n_features)
+    early_stop = EarlyStopping(monitor='val_loss', patience=7, restore_best_weights=True)
 
-    for fit_repeat in range(5*(candle//4 + 1)):
+    for fit_repeat in range(5):
         end_day = np.random.randint(-364+dataset_days,0)
         df = dataset(end_day, days=dataset_days, candlehr=candle)
         x_train, y_train, x_test, y_test = get_train_test_sets(df, seq_len, train_frac=0.9)
@@ -58,6 +71,7 @@ for candle in [1,4,12,24]:
         target_idx = df.columns.get_loc('Close')
         y_train = y_train[:, target_idx].reshape(-1, 1)
         y_test = y_test[:, target_idx].reshape(-1, 1)
+
 
         history = the_model.fit(
             x_train,
@@ -87,6 +101,7 @@ for candle in [1,4,12,24]:
         
         # simpan model dengan history fit_repeat
         the_model.save(f'keras/model{candle}_{fit_repeat}.keras')
+        the_model.save(f'keras/model_last_{candle}.keras')
         print(f"Model saved to keras/model{candle}_{fit_repeat}.keras")
 
     #test
